@@ -51,12 +51,12 @@ public:
   unsigned short pm10 = 0;
   
   // pms5003 specific
-  unsigned short pm_qty_0_3_dl = 0;
-  unsigned short pm_qty_0_5_dl = 0;
-  unsigned short pm_qty_1_dl = 0;
-  unsigned short pm_qty_2_5_dl = 0;
-  unsigned short pm_qty_5_dl = 0;
-  unsigned short pm_qty_10_dl = 0;
+  unsigned short qty_pm0_3_dl = 0;
+  unsigned short qty_pm0_5_dl = 0;
+  unsigned short qty_pm1_dl = 0;
+  unsigned short qty_pm2_5_dl = 0;
+  unsigned short qty_pm5_dl = 0;
+  unsigned short qty_pm10_dl = 0;
 
   unsigned char buffer[32] = {0};
   unsigned char packetIndex = 0;

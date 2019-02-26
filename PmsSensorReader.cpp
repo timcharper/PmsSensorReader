@@ -44,6 +44,12 @@ PmsSensorReader::PmsSensorReader() {
   this->pm1 = 0;
   this->pm2_5 = 0;
   this->pm10 = 0;
+  this->qty_pm0_3_dl = 0;
+  this->qty_pm0_5_dl = 0;
+  this->qty_pm1_dl = 0;
+  this->qty_pm2_5_dl = 0;
+  this->qty_pm5_dl = 0;
+  this->qty_pm10_dl = 0;
 }
 
 PmsSensorReaderResult PmsSensorReader::offer(unsigned char value) {
@@ -108,12 +114,12 @@ PmsSensorReaderResult PmsSensorReader::_measure() {
   /* +10, +12, +14 are the previous measurements "under atmospheric environment". IE the same. */
 
   if (this->sensorType == Pms5003) {
-    this->pm_qty_0_3_dl = readShort(this->buffer+16);
-    this->pm_qty_0_5_dl = readShort(this->buffer+18);
-    this->pm_qty_1_dl = readShort(this->buffer+20);
-    this->pm_qty_2_5_dl = readShort(this->buffer+22);
-    this->pm_qty_5_dl = readShort(this->buffer+24);
-    this->pm_qty_10_dl = readShort(this->buffer+26);
+    this->qty_pm0_3_dl = readShort(this->buffer+16);
+    this->qty_pm0_5_dl = readShort(this->buffer+18);
+    this->qty_pm1_dl = readShort(this->buffer+20);
+    this->qty_pm2_5_dl = readShort(this->buffer+22);
+    this->qty_pm5_dl = readShort(this->buffer+24);
+    this->qty_pm10_dl = readShort(this->buffer+26);
   }
 
   return success;
