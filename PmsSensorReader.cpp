@@ -25,47 +25,96 @@
 */
 
 #include "PmsSensorReader.h"
+#include <Arduino.h>
+
+// PMS-5003: http://www.aqmd.gov/docs/default-source/aq-spec/resources-page/plantower-pms5003-manual_v2-3.pdf
+// PMS-3003: https://github.com/avaldebe/AQmon/blob/master/Documents/PMS3003_LOGOELE.pdf
+
+unsigned short readShort(unsigned char bytes[]) {
+  unsigned short result = *bytes;
+  result = result << 8;
+  result += *(bytes + 1);
+  return result;
+}
+
 
 PmsSensorReader::PmsSensorReader() {
+  this->packetLength = 0;
   this->packetIndex = 0;
   this->pm1 = 0;
   this->pm2_5 = 0;
   this->pm10 = 0;
 }
 
-bool PmsSensorReader::offer(unsigned char value) {
+PmsSensorReaderResult PmsSensorReader::offer(unsigned char value) {
   this->buffer[this->packetIndex] = value;
   if (this->packetIndex == 0) {
     if(value == 0x42) {
+      // reset
+      this->packetLength = 0;
       this->packetIndex = 1;
     }
-    return false;
-  }
-
-  if (this->packetIndex == 1) {
+    return resultPending;
+  } else if (this->packetIndex == 1) {
     if (value == 0x4d) {
       this->packetIndex = 2;
-      return false;
+      return resultPending;
     } else {
       this->packetIndex = 0;
-      return false;
+      return resultPending;
     }
-  }
-
-  if (this->packetIndex == 23) {
-    _measure();
-
+  } else if (this->packetIndex == 2) {
+    this->packetIndex = 3;
+    return resultPending;
+  } else if (this->packetIndex == 3) {
+    this->packetLength = readShort(this->buffer + 2) + 4; // Plus the 4 we've already read
+    if ((this->packetLength) > (sizeof(this->buffer))) {
+      this->packetIndex = 0;
+      return frameTooLarge;
+    } else {
+      this->packetIndex = 4;
+      return resultPending;
+    }
+  } else if (this->packetIndex > (this->packetLength - 1)) {
     this->packetIndex = 0;
-    return true;
+    return invalidFrameLength;
+  } else if (this->packetIndex == (this->packetLength - 1)) {
+    this->packetIndex = 0;
+    return this->_measure();
   } else {
     this->packetIndex ++;
-    return false;
+    return resultPending;
   }
 }
 
 
-void PmsSensorReader::_measure() {
-  this->pm1 = 256 * this->buffer[4] + this->buffer[5];
-  this->pm2_5 = 256 * this->buffer[6] + this->buffer[7];
-  this->pm10 = 256 * this->buffer[8] + this->buffer[9];
+PmsSensorReaderResult PmsSensorReader::_measure() {
+  unsigned short checksum = readShort(this->buffer + (this->packetLength - 2));
+  unsigned short sum = 0;
+  for (int i = 0; i < this->packetLength - 2; i++) {
+    sum += this->buffer[i];
+  }
+  if (sum != checksum) {
+    return checksumFailed;
+  }
+  if (this->packetLength == 32) {
+    this->sensorType = Pms5003;
+  } else {
+    this->sensorType = Pms3003;
+  }
+  this->pm1 = readShort(this->buffer + 4);
+  this->pm2_5 = readShort(this->buffer + 6);
+  this->pm10 = readShort(this->buffer + 8);
+  /* +10, +12, +14 are the previous measurements "under atmospheric environment". IE the same. */
+
+  if (this->sensorType == Pms5003) {
+    this->pm_qty_0_3_dl = readShort(this->buffer+16);
+    this->pm_qty_0_5_dl = readShort(this->buffer+18);
+    this->pm_qty_1_dl = readShort(this->buffer+20);
+    this->pm_qty_2_5_dl = readShort(this->buffer+22);
+    this->pm_qty_5_dl = readShort(this->buffer+24);
+    this->pm_qty_10_dl = readShort(this->buffer+26);
+  }
+
+  return success;
 }

@@ -1,5 +1,4 @@
-/*
-  Reader class for PMS3003 sensor.
+/* Reader class for PMS3003 sensor.
   
   Copyright (c) 2019 Tim Harper
 
@@ -24,6 +23,17 @@
   SOFTWARE.
 */
 
+enum PmsSensorReaderResult: unsigned char
+{
+ resultPending = 0,
+ success = 1,
+ frameTooLarge = 2,
+ checksumFailed = 3,
+ invalidFrameLength = 4
+};
+
+enum PmsSensorType { Unknown, Pms3003, Pms5003 };
+
 /*
  * Controller can just feed data one byte at a time from the serial input device. This reader class will detect the
  * frame beginning.  Dropped bytes may lead to an errant reading; however, the reader will recalibrate to the next frame
@@ -31,13 +41,24 @@
  */
 class PmsSensorReader {
 private:
-  void _measure();
+  PmsSensorReaderResult _measure();
 public:
   PmsSensorReader();
-  unsigned int pm1 = 0;
-  unsigned int pm2_5 = 0;
-  unsigned int pm10 = 0;
-  unsigned char buffer[24];
+  unsigned short packetLength = 0;
+  PmsSensorType sensorType = Unknown;
+  unsigned short pm1 = 0;
+  unsigned short pm2_5 = 0;
+  unsigned short pm10 = 0;
+  
+  // pms5003 specific
+  unsigned short pm_qty_0_3_dl = 0;
+  unsigned short pm_qty_0_5_dl = 0;
+  unsigned short pm_qty_1_dl = 0;
+  unsigned short pm_qty_2_5_dl = 0;
+  unsigned short pm_qty_5_dl = 0;
+  unsigned short pm_qty_10_dl = 0;
+
+  unsigned char buffer[32] = {0};
   unsigned char packetIndex = 0;
 
   /**
@@ -45,5 +66,5 @@ public:
    *
    * Returns true if the byte completes a PMS Sensor packet and a new reading is available
    */
-  bool offer(unsigned char value);
+  PmsSensorReaderResult offer(unsigned char value);
 };
